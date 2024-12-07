@@ -1,13 +1,11 @@
 import { PuzzleSolver } from './PuzzleSolver';
 
-export class DayxxSolver extends PuzzleSolver {
+export default class DayxxSolver extends PuzzleSolver {
     solvePart1(): string | number {
-        // Logic for part 1
         return "Solution to part 1";
     }
 
     solvePart2(): string | number {
-        // Logic for part 2
         return "Solution to part 2";
     }
 }

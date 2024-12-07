@@ -1,7 +1,6 @@
-import {AbstractDayTest} from './AbstractDayTest';
+import { AbstractDayTest } from './AbstractDayTest';
 
-
-class Day05Test extends AbstractDayTest<any> {
+class Day05Test extends AbstractDayTest<any>{
     constructor() {
         super(5);
     }
@@ -10,13 +9,13 @@ class Day05Test extends AbstractDayTest<any> {
 const dayTest = new Day05Test();
 
 test('Day 5 Part 1 Test Input 1', () => {
-    dayTest.testPart('Part1', 'Expected solution for test input 1', 1);
+    dayTest.testPart(1, 'Expected solution for test input 1', 1);
 });
 
 test('Day 5 Part 1 Test Input 2', () => {
-    dayTest.testPart('Part1', 'Expected solution for test input 2', 2);
+    dayTest.testPart(1, 'Expected solution for test input 2', 2);
 });
 
 test('Day 5 Part 2 Test Input 1', () => {
-    dayTest.testPart('Part2', 'Expected solution for test input 1', 1);
+    dayTest.testPart(2, 'Expected solution for test input 1', 1);
 });

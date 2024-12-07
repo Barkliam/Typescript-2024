@@ -16,24 +16,24 @@ function getInput(day: number): string {
     return fs.readFileSync(inputFilePath, 'utf-8');
 }
 
-function solveDay(day: number): void {
+async function solveDay(day: number): Promise<void> {
     const input = getInput(day);
-    let solver;
 
-    switch (day) {
-        case 1:
-            solver = new Day01Solver(input);
-            break;
-        case 2:
-            solver = new Day02Solver(input);
-            break;
-        default:
-            throw new Error(`No solver implemented for day ${day}`);
+    const solverModulePath = path.resolve(__dirname, 'solvers', `Day${day.toString().padStart(2, '0')}Solver`);
+    if (!fs.existsSync(`${solverModulePath}.js`) && !fs.existsSync(`${solverModulePath}.ts`)) {
+        throw new Error(`No solver implemented for day ${day}`);
     }
 
+    const { default: SolverClass } = await import(solverModulePath);
+
+    if (!SolverClass) {
+        throw new Error(`Solver class not found for day ${day}`);
+    }
+
+    const solver = new SolverClass(input);
     console.log(`Day ${day} - Part 1: ${solver.solvePart1()}`);
     console.log(`Day ${day} - Part 2: ${solver.solvePart2()}`);
 }
 
 // Change this line to solve a specific day:
-solveDay(5);
+solveDay(5).catch((error) => console.error(error));
