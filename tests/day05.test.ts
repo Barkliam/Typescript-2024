@@ -1,13 +1,9 @@
-import { AbstractDayTest } from './AbstractDayTest';
-import Day05Solver from '../src/solvers/Day05Solver';
+import {AbstractDayTest} from './AbstractDayTest';
 
-class Day05Test extends AbstractDayTest<Day05Solver> {
+
+class Day05Test extends AbstractDayTest<any> {
     constructor() {
-        super(Day05Solver);
-    }
-
-    getDayName(): string {
-        return 'day_05';
+        super(5);
     }
 }
 
