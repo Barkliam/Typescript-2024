@@ -1,5 +1,20 @@
 export class Point {
     private static pointMap: Map<string, Point> = new Map();
+    private static unitVectorCache: Point[] | null = null;
+
+    static get unitVectors(): Point[] {
+        if (!Point.unitVectorCache) {
+            Point.unitVectorCache = [];
+            for (let x = -1; x <= 1; x++) {
+                for (let y = -1; y <= 1; y++) {
+                    if (x !== 0 || y !== 0) {
+                        Point.unitVectorCache.push(Point.get(x, y));
+                    }
+                }
+            }
+        }
+        return Point.unitVectorCache;
+    }
 
     private constructor(public readonly x: number, public readonly y: number) {
     }
@@ -22,5 +37,9 @@ export class Point {
 
     toString(): string {
         return `(${this.x},${this.y})`;
+    }
+
+    multiply(multiplier: number) {
+        return Point.get(this.x * multiplier, this.y * multiplier);
     }
 }

@@ -1,7 +1,5 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import Day01Solver from './solvers/Day01Solver';
-import Day02Solver from './solvers/Day02Solver';
 
 
 function getInput(day: number): string {
@@ -36,4 +34,4 @@ async function solveDay(day: number): Promise<void> {
 }
 
 // Change this line to solve a specific day:
-solveDay(6).catch((error) => console.error(error));
+solveDay(4).catch((error) => console.error(error));
