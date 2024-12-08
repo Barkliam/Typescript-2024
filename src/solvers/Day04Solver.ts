@@ -4,6 +4,9 @@ import {Point} from "../utility/Point";
 export default class Day04Solver extends PuzzleSolver {
     letterGrid!: Map<Point, "X" | "M" | "A" | "S">;
     xmas = ["X", "M", "A", "S"];
+    diagonalVectors = Point.unitVectors.filter(
+        (vector) => vector.x * vector.y !== 0
+    );
 
     solvePart1(): string | number {
         let count = 0;
@@ -34,19 +37,10 @@ export default class Day04Solver extends PuzzleSolver {
             if (char !== "A") {
                 continue;
             }
-            const diagonals = Point.unitVectors.filter(
-                (vector) => vector.x * vector.y !== 0
-            );
-            const diagonalLetters = diagonals
+            const diagonalLetters = this.diagonalVectors
                 .map((vector) => this.letterGrid.get(point.add(vector)) || "#")
-                //  .sort()
                 .join("");
-            if (
-                diagonalLetters === "MMSS" ||
-                diagonalLetters === "SSMM" ||
-                diagonalLetters === "SMSM" ||
-                diagonalLetters === "MSMS"
-            ) {
+            if (["MMSS", "SSMM", "SMSM", "MSMS"].includes(diagonalLetters)) {
                 count++;
             }
         }
