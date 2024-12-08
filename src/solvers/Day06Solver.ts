@@ -1,104 +1,38 @@
-import { PuzzleSolver } from "./PuzzleSolver";
+import {PuzzleSolver} from "./PuzzleSolver";
+import {Point} from "../utility/Point";
 
-class Point {
-    x: number;
-    y: number;
-
-    constructor(x: number, y: number) {
-        this.x = x;
-        this.y = y;
-    }
-
-    rotateRight(): Point {
-        return new Point(-this.y, this.x);
-    }
-
-    add(other: Point): Point {
-        return new Point(this.x + other.x, this.y + other.y);
-    }
-    toString(): string {
-        return "(" + this.x + "," + this.y + ")";
-    }
-    clone(): Point {
-        return new Point(this.x, this.y);
-    }
-}
 
 export default class Day06Solver extends PuzzleSolver {
     initialPosition!: Point;
-    initialDirection: Point = new Point(0, -1);
-    obstacles!: Array<string>;
+    initialDirection: Point = Point.get(0, -1);
+    obstacles!: Array<Point>;
     maxX!: number;
     maxY!: number;
 
     solvePart1(): number {
-        const visited: Set<string> = new Set();
-        this.runGuardWalk(
-            visited,
-            this.initialPosition.clone(),
-            this.initialDirection.clone(),
-            this.obstacles
-        );
+        const visited: Set<Point> = new Set();
+        this.runGuardWalk(visited, this.initialPosition, this.initialDirection, this.obstacles);
         return visited.size;
     }
 
-    //returns true if repeating loop
-    private runGuardWalk(
-        visited: Set<string>,
-        position: Point,
-        direction: Point,
-        obstacles: Array<string>
-    ): boolean {
-        const turns: Set<string> = new Set<string>();
-
-        while (this.isGuardInBounds(position)) {
-            visited.add(position.toString());
-            let nextPosition = position.add(direction);
-            while (obstacles.includes(nextPosition.toString())) {
-                direction = direction.rotateRight();
-                nextPosition = position.add(direction);
-                const positionDirectionString =
-                    position.toString() + direction.toString();
-                if (turns.has(positionDirectionString)) {
-                    return true;
-                }
-                turns.add(positionDirectionString);
-            }
-            position = nextPosition;
-        }
-        return false;
-    }
-
     solvePart2(): number {
-        const visited: Set<string> = new Set();
-        this.runGuardWalk(
-            visited,
-            this.initialPosition.clone(),
-            this.initialDirection.clone(),
-            this.obstacles
-        );
-        visited.delete(this.initialPosition.toString());
-        return Array.from(visited).filter((visitedPoint: string) =>
-            this.runGuardWalk(
-                new Set<string>(),
-                this.initialPosition,
-                this.initialDirection,
-                [...this.obstacles, visitedPoint.toString()]
-            )
-        ).length;
+        const visited: Set<Point> = new Set();
+        this.runGuardWalk(visited, this.initialPosition, this.initialDirection, this.obstacles);
+        visited.delete(this.initialPosition);
+        return Array.from(visited).filter((visitedPoint: Point) => this.runGuardWalk(new Set<Point>(), this.initialPosition, this.initialDirection, [...this.obstacles, visitedPoint])).length;
     }
 
     processInput(input: string): void {
         this.obstacles = [];
-        let y: number = 0;
+        let y = 0;
         for (const row of input.split("\n")) {
             for (let x = 0; x < row.length; x++) {
                 switch (row.charAt(x)) {
                     case "^":
-                        this.initialPosition = new Point(x, y);
+                        this.initialPosition = Point.get(x, y);
                         break;
                     case "#":
-                        this.obstacles.push(new Point(x, y).toString());
+                        this.obstacles.push(Point.get(x, y));
                         break;
                     case ".":
                         break;
@@ -110,6 +44,27 @@ export default class Day06Solver extends PuzzleSolver {
             this.maxY = y;
             y++;
         }
+    }
+
+    //Returns true if repeating loop
+    private runGuardWalk(visited: Set<Point>, position: Point, direction: Point, obstacles: Array<Point>): boolean {
+        const visitedCorners: Set<string> = new Set<string>();
+
+        while (this.isGuardInBounds(position)) {
+            visited.add(position);
+            let nextPosition = position.add(direction);
+            while (obstacles.includes(nextPosition)) {
+                direction = direction.rotateRight();
+                nextPosition = position.add(direction);
+                const visitedCornersKey = position.toString() + direction.toString();
+                if (visitedCorners.has(visitedCornersKey)) {
+                    return true;
+                }
+                visitedCorners.add(visitedCornersKey);
+            }
+            position = nextPosition;
+        }
+        return false;
     }
 
     private isGuardInBounds(point: Point): boolean {
