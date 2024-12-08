@@ -4,9 +4,7 @@ import {Point} from "../utility/Point";
 export default class Day04Solver extends PuzzleSolver {
     letterGrid!: Map<Point, "X" | "M" | "A" | "S">;
     xmas = ["X", "M", "A", "S"];
-    diagonalVectors = Point.unitVectors.filter(
-        (vector) => vector.x * vector.y !== 0
-    );
+    diagonalVectors = Point.unitVectors.filter(vector => vector.x * vector.y !== 0);
 
     solvePart1(): string | number {
         let count = 0;
@@ -15,13 +13,10 @@ export default class Day04Solver extends PuzzleSolver {
                 continue;
             }
             for (const direction of Point.unitVectors) {
-                if (
-                    this.xmas.every(
-                        (letter, index) =>
-                            letter ===
-                            this.letterGrid.get(point.add(direction.multiply(index)))
-                    )
-                ) {
+                if (this.xmas.every((letter, index) => {
+                    let testPoint = point.add(direction.multiply(index));
+                    return letter === this.letterGrid.get(testPoint);
+                })) {
                     count++;
                 }
             }
