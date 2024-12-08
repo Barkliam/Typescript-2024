@@ -13,5 +13,5 @@ test('Day 4 Part 1 Test Input 1', () => {
 });
 
 test('Day 4 Part 2 Test Input 1', () => {
-    dayTest.testPart(2, '6', 1);
+    dayTest.testPart(2, 9, 1);
 });
