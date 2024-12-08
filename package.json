@@ -7,6 +7,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "clang-format": "^1.8.0",
     "fs-extra": "^11.0.0"
   },
   "devDependencies": {

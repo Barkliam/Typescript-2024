@@ -9,13 +9,9 @@ class Day05Test extends AbstractDayTest<any>{
 const dayTest = new Day05Test();
 
 test('Day 5 Part 1 Test Input 1', () => {
-    dayTest.testPart(1, 'Expected solution for test input 1', 1);
-});
-
-test('Day 5 Part 1 Test Input 2', () => {
-    dayTest.testPart(1, 'Expected solution for test input 2', 2);
+    dayTest.testPart(1, 143, 1);
 });
 
 test('Day 5 Part 2 Test Input 1', () => {
-    dayTest.testPart(2, 'Expected solution for test input 1', 1);
+    dayTest.testPart(2, '123', 1);
 });
