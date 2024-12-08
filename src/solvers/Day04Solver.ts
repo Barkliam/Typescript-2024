@@ -12,7 +12,13 @@ export default class Day04Solver extends PuzzleSolver {
                 continue;
             }
             for (const direction of Point.unitVectors) {
-                if (this.xmas.every((letter, index) => letter === this.letterGrid.get(point.add(direction.multiply(index))))) {
+                if (
+                    this.xmas.every(
+                        (letter, index) =>
+                            letter ===
+                            this.letterGrid.get(point.add(direction.multiply(index)))
+                    )
+                ) {
                     count++;
                 }
             }
@@ -28,12 +34,20 @@ export default class Day04Solver extends PuzzleSolver {
             if (char !== "A") {
                 continue;
             }
-            const diagonals = Point.unitVectors.filter((vector) => vector.x * vector.y !== 0);
-            const diagonalLetters = diagonals.map((vector) => this.letterGrid.get(point.add(vector)) || "#")
+            const diagonals = Point.unitVectors.filter(
+                (vector) => vector.x * vector.y !== 0
+            );
+            const diagonalLetters = diagonals
+                .map((vector) => this.letterGrid.get(point.add(vector)) || "#")
                 //  .sort()
                 .join("");
-            if (diagonalLetters === "MMSS" || diagonalLetters === "SSMM" || diagonalLetters === "SMSM" || diagonalLetters === "MSMS") {
-                count++
+            if (
+                diagonalLetters === "MMSS" ||
+                diagonalLetters === "SSMM" ||
+                diagonalLetters === "SMSM" ||
+                diagonalLetters === "MSMS"
+            ) {
+                count++;
             }
         }
         return count;
