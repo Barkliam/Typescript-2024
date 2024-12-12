@@ -16,6 +16,10 @@ export class Point {
         return Point.unitVectorCache;
     }
 
+    directlyAdjacent(): Point[] {
+        return Point.unitVectors.filter(point => !(point.x * point.y)).map(point => this.add(point))
+    }
+
     private constructor(public readonly x: number, public readonly y: number) {
     }
 
