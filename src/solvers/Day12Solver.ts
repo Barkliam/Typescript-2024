@@ -4,7 +4,7 @@ import {Point} from "../utility/Point";
 type Area = {
     letter: string;
     points: Array<Point>;
-    adjacentPoints: Array<Point>;
+    adjacentPoints: Array<BorderPoint>;
 };
 
 type BorderPoint = {
@@ -17,18 +17,20 @@ export default class Day12Solver extends PuzzleSolver {
     letterMap!: Map<string, Array<Point>>;
 
     solvePart1(): string | number {
-        let areas: Array<Area> = [];
+        // let areas: Array<Area> = [];
+        //
+        // //TODO turn into a flatMap
+        // // Group connected areas for each letter
+        // this.letterMap.forEach((points, letter) => {
+        //     areas = [...areas, ...this.findConnectedAreas(points, letter)];
+        // });
+        //
+        // // Calculate the result for part 1
+        // return areas
+        //     .map((area) => this.calculateAreaScore(area))
+        //     .reduce((total, score) => total + score, 0);
 
-        //TODO turn into a flatMap
-        // Group connected areas for each letter
-        this.letterMap.forEach((points, letter) => {
-            areas = [...areas, ...this.findConnectedAreas(points, letter)];
-        });
-
-        // Calculate the result for part 1
-        return areas
-            .map((area) => this.calculateAreaScore(area))
-            .reduce((total, score) => total + score, 0);
+        return -1
     }
 
     solvePart2(): string | number {
@@ -40,21 +42,50 @@ export default class Day12Solver extends PuzzleSolver {
         });
 
         // Calculate the total sum for part 2
-        let totalSum = 0;
+        let price = 0
 
-        // for (const area of areas) {
-        //     const boundarySubtraction = this.calculateBoundarySubtraction(area);
-        //     const totalSides = this.calculateTotalSides(area);
-        //     const groupedSides = totalSides - boundarySubtraction;
-        //
-        //     const numPoints = area.points.length;
-        //     const price = groupedSides * numPoints;
-        //
-        //     totalSum += price;
-        // }
+        for (const area of areas) {
+            let borderingPoints = [...area.adjacentPoints]
+            let sides = []
+            while (borderingPoints.length) {
+                const nextBorderPoint = borderingPoints.pop();
+                if (!nextBorderPoint) continue;
+                const newSide = [nextBorderPoint];
 
-        return totalSum;
+                let possibleNextBorders = nextBorderPoint.point.directlyAdjacent();
+                let precursors = [nextBorderPoint.precursor]
+                let expanding = true;
+
+                while (expanding) {
+                    let toRemove: Array<BorderPoint> = []
+
+                    expanding = false
+                    borderingPoints.filter(borderPoint => !newSide.includes(borderPoint)).filter(borderPoint => possibleNextBorders.includes(borderPoint.point) && precursors.some(precursor => precursor.isDirectlyAdjacent(borderPoint.precursor))).forEach(borderPointToAdd => {
+                        newSide.push(borderPointToAdd);
+                        precursors.push(borderPointToAdd.precursor);
+                        possibleNextBorders.push(...borderPointToAdd.point.directlyAdjacent())
+                        expanding = true;
+                        toRemove.push(borderPointToAdd)
+
+
+                    })
+                    borderingPoints = borderingPoints.filter(borderPoint => !toRemove.includes(borderPoint))
+                }
+                sides.push(newSide)
+            }
+            console.log(area.letter, sides.length, area.points.length)
+            price += sides.length * area.points.length
+
+
+        }
+
+
+        return price;
     }
+
+
+
+
 
     processInput(input: string): void {
         this.letterMap = new Map<string, Array<Point>>();
@@ -80,9 +111,12 @@ export default class Day12Solver extends PuzzleSolver {
             if (!nextPoint) continue;
 
             const newAreaPoints = [nextPoint];
-            let borderingPoints: Array<Point> = [];
+            let borderingPoints: Array<BorderPoint> = [];
 
-            nextPoint.directlyAdjacent().forEach((adj) => borderingPoints.push(adj));
+            nextPoint.directlyAdjacent().forEach((adj) => borderingPoints.push({
+                point: adj,
+                precursor: nextPoint
+            }));
 
             let expanding = true;
 
@@ -91,24 +125,27 @@ export default class Day12Solver extends PuzzleSolver {
 
                 const toRemove: Array<Point> = [];
                 points
-                    .filter((point) => borderingPoints.includes(point))
+                    .filter((point) => borderingPoints.map(i => i.point).includes(point))
                     .forEach((nextPointToAdd) => {
                         newAreaPoints.push(nextPointToAdd);
                         toRemove.push(nextPointToAdd);
                         nextPointToAdd
                             .directlyAdjacent()
                             .forEach((newBorderingPoint) =>
-                                borderingPoints.push(newBorderingPoint)
+                                borderingPoints.push({
+                                    point: newBorderingPoint,
+                                    precursor: nextPointToAdd
+                                })
                             );
 
                         expanding = true;
 
                     });
 
-                borderingPoints = borderingPoints.filter((oldPoint) => !toRemove.includes(oldPoint));
+                borderingPoints = borderingPoints.filter((oldPoint) => !toRemove.includes(oldPoint.point));
                 points = points.filter((oldPoint) => !toRemove.includes(oldPoint));
             }
-            borderingPoints = borderingPoints.filter(oldPoint => !newAreaPoints.includes(oldPoint))
+            borderingPoints = borderingPoints.filter(oldPoint => !newAreaPoints.includes(oldPoint.point))
             areas.push({points: newAreaPoints, adjacentPoints: borderingPoints, letter});
         }
 

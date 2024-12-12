@@ -46,4 +46,8 @@ export class Point {
     multiply(multiplier: number) {
         return Point.get(this.x * multiplier, this.y * multiplier);
     }
+
+    isDirectlyAdjacent(point: Point) {
+        return this.directlyAdjacent().includes(point);
+    }
 }
