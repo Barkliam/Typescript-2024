@@ -1,91 +1,85 @@
 import {PuzzleSolver} from "./PuzzleSolver";
 import {Point} from "../utility/Point";
 
-type Area = {
-    letter: string;
-    points: Array<Point>;
-    adjacentPoints: Array<BorderPoint>;
+type GardenPlot = {
+    interiorPoints: Array<Point>;
+    borderingPoints: Array<BorderPoint>;
 };
 
 type BorderPoint = {
-    point: Point
-    precursor: Point
+    point: Point;
+    closestPlant: Point;
 };
-
 
 export default class Day12Solver extends PuzzleSolver {
     letterMap!: Map<string, Array<Point>>;
 
     solvePart1(): string | number {
-        // let areas: Array<Area> = [];
-        //
-        // //TODO turn into a flatMap
-        // // Group connected areas for each letter
-        // this.letterMap.forEach((points, letter) => {
-        //     areas = [...areas, ...this.findConnectedAreas(points, letter)];
-        // });
-        //
-        // // Calculate the result for part 1
-        // return areas
-        //     .map((area) => this.calculateAreaScore(area))
-        //     .reduce((total, score) => total + score, 0);
+        let gardenPlots = Array.from(this.letterMap.values())
+            .map((sameLetterPoints) => [...sameLetterPoints])
+            .flatMap(this.findConnectedAreas);
 
-        return -1
+        return gardenPlots.map(this.calculateFencePrice).reduce(super.sum);
+    }
+
+    calculateFencePrice(gardenPlot: GardenPlot): number {
+        const boundarySum = gardenPlot.borderingPoints.length;
+        return boundarySum * gardenPlot.interiorPoints.length;
     }
 
     solvePart2(): string | number {
-        let areas: Array<Area> = [];
-
-        // Group connected areas for each letter
-        this.letterMap.forEach((points, letter) => {
-            areas = [...areas, ...this.findConnectedAreas(points, letter)];
-        });
+        let gardenPlots = Array.from(this.letterMap.values())
+            .map((sameLetterPoints) => [...sameLetterPoints])
+            .flatMap(this.findConnectedAreas);
 
         // Calculate the total sum for part 2
-        let price = 0
+        let price = 0;
 
-        for (const area of areas) {
-            let borderingPoints = [...area.adjacentPoints]
-            let sides = []
+        for (const area of gardenPlots) {
+            let borderingPoints = [...area.borderingPoints];
+            let sides = [];
             while (borderingPoints.length) {
                 const nextBorderPoint = borderingPoints.pop();
                 if (!nextBorderPoint) continue;
                 const newSide = [nextBorderPoint];
 
                 let possibleNextBorders = nextBorderPoint.point.directlyAdjacent();
-                let precursors = [nextBorderPoint.precursor]
+                let precursors = [nextBorderPoint.closestPlant];
                 let expanding = true;
 
                 while (expanding) {
-                    let toRemove: Array<BorderPoint> = []
+                    let toRemove: Array<BorderPoint> = [];
 
-                    expanding = false
-                    borderingPoints.filter(borderPoint => !newSide.includes(borderPoint)).filter(borderPoint => possibleNextBorders.includes(borderPoint.point) && precursors.some(precursor => precursor.isDirectlyAdjacent(borderPoint.precursor))).forEach(borderPointToAdd => {
-                        newSide.push(borderPointToAdd);
-                        precursors.push(borderPointToAdd.precursor);
-                        possibleNextBorders.push(...borderPointToAdd.point.directlyAdjacent())
-                        expanding = true;
-                        toRemove.push(borderPointToAdd)
-
-
-                    })
-                    borderingPoints = borderingPoints.filter(borderPoint => !toRemove.includes(borderPoint))
+                    expanding = false;
+                    borderingPoints
+                        .filter((borderPoint) => !newSide.includes(borderPoint))
+                        .filter(
+                            (borderPoint) =>
+                                possibleNextBorders.includes(borderPoint.point) &&
+                                precursors.some((precursor) =>
+                                    precursor.isDirectlyAdjacent(borderPoint.closestPlant)
+                                )
+                        )
+                        .forEach((borderPointToAdd) => {
+                            newSide.push(borderPointToAdd);
+                            precursors.push(borderPointToAdd.closestPlant);
+                            possibleNextBorders.push(
+                                ...borderPointToAdd.point.directlyAdjacent()
+                            );
+                            expanding = true;
+                            toRemove.push(borderPointToAdd);
+                        });
+                    borderingPoints = borderingPoints.filter(
+                        (borderPoint) => !toRemove.includes(borderPoint)
+                    );
                 }
-                sides.push(newSide)
+                sides.push(newSide);
             }
-            console.log(area.letter, sides.length, area.points.length)
-            price += sides.length * area.points.length
-
-
+            price += sides.length * area.interiorPoints.length;
         }
-
 
         return price;
     }
-
-
-
-
 
     processInput(input: string): void {
         this.letterMap = new Map<string, Array<Point>>();
@@ -103,20 +97,22 @@ export default class Day12Solver extends PuzzleSolver {
         }
     }
 
-    private findConnectedAreas(points: Array<Point>, letter: string): Array<Area> {
-        const areas: Array<Area> = [];
+    private findConnectedAreas(allPoints: Array<Point>): Array<GardenPlot> {
+        const gardenPlots: Array<GardenPlot> = [];
 
-        while (points.length) {
-            const nextPoint = points.pop();
+        while (allPoints.length) {
+            const nextPoint = allPoints.pop();
             if (!nextPoint) continue;
 
-            const newAreaPoints = [nextPoint];
+            const connectedAreaPoints = [nextPoint];
             let borderingPoints: Array<BorderPoint> = [];
 
-            nextPoint.directlyAdjacent().forEach((adj) => borderingPoints.push({
-                point: adj,
-                precursor: nextPoint
-            }));
+            nextPoint.directlyAdjacent().forEach((adj) =>
+                borderingPoints.push({
+                    point: adj,
+                    closestPlant: nextPoint,
+                })
+            );
 
             let expanding = true;
 
@@ -124,51 +120,39 @@ export default class Day12Solver extends PuzzleSolver {
                 expanding = false;
 
                 const toRemove: Array<Point> = [];
-                points
-                    .filter((point) => borderingPoints.map(i => i.point).includes(point))
+                allPoints
+                    .filter((point) =>
+                        borderingPoints.map((i) => i.point).includes(point)
+                    )
                     .forEach((nextPointToAdd) => {
-                        newAreaPoints.push(nextPointToAdd);
+                        connectedAreaPoints.push(nextPointToAdd);
                         toRemove.push(nextPointToAdd);
-                        nextPointToAdd
-                            .directlyAdjacent()
-                            .forEach((newBorderingPoint) =>
-                                borderingPoints.push({
-                                    point: newBorderingPoint,
-                                    precursor: nextPointToAdd
-                                })
-                            );
+                        nextPointToAdd.directlyAdjacent().forEach((newBorderingPoint) =>
+                            borderingPoints.push({
+                                point: newBorderingPoint,
+                                closestPlant: nextPointToAdd,
+                            })
+                        );
 
                         expanding = true;
-
                     });
 
-                borderingPoints = borderingPoints.filter((oldPoint) => !toRemove.includes(oldPoint.point));
-                points = points.filter((oldPoint) => !toRemove.includes(oldPoint));
+                borderingPoints = borderingPoints.filter(
+                    (oldPoint) => !toRemove.includes(oldPoint.point)
+                );
+                allPoints = allPoints.filter(
+                    (oldPoint) => !toRemove.includes(oldPoint)
+                );
             }
-            borderingPoints = borderingPoints.filter(oldPoint => !newAreaPoints.includes(oldPoint.point))
-            areas.push({points: newAreaPoints, adjacentPoints: borderingPoints, letter});
+            borderingPoints = borderingPoints.filter(
+                (oldPoint) => !connectedAreaPoints.includes(oldPoint.point)
+            );
+            gardenPlots.push({
+                interiorPoints: connectedAreaPoints,
+                borderingPoints: borderingPoints,
+            });
         }
 
-        return areas;
+        return gardenPlots;
     }
-
-    private calculateAreaScore(area: Area): number {
-        const boundarySum = area.adjacentPoints.length;
-        return boundarySum * area.points.length;
-    }
-
-    // private calculateBoundarySubtraction(area: Area): number {
-    //     const boundaryAreas = this.findConnectedAreas(
-    //         Array.from(area.adjacentPoints.keys()),
-    //         "L"
-    //     );
-    //
-    //     return boundaryAreas
-    //         .map((boundaryArea) => boundaryArea.points.length - 1)
-    //         .reduce((a, b) => a + b, 0);
-    // }
-
-    // private calculateTotalSides(area: Area): number {
-    //     return Array.from(area.adjacentPoints.values()).reduce((a, b) => a + b, 0);
-    // }
 }

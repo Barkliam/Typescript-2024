@@ -6,4 +6,8 @@ export abstract class PuzzleSolver {
 
     abstract solvePart1(): string | number;
     abstract solvePart2(): string | number;
+
+    sum(a: number, b: number): number {
+        return a + b;
+    }
 }
