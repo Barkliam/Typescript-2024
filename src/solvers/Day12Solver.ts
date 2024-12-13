@@ -2,157 +2,114 @@ import {PuzzleSolver} from "./PuzzleSolver";
 import {Point} from "../utility/Point";
 
 type GardenPlot = {
-    interiorPoints: Array<Point>;
-    borderingPoints: Array<BorderPoint>;
+    interiorPoints: Array<Point>; borderingPoints: Array<BorderPoint>;
 };
 
 type BorderPoint = {
-    point: Point;
-    closestPlant: Point;
+    point: Point; closestAreaPoint: Point;
 };
 
 export default class Day12Solver extends PuzzleSolver {
-    letterMap!: Map<string, Array<Point>>;
+    gardenPlots!: Array<GardenPlot>;
 
     solvePart1(): string | number {
-        let gardenPlots = Array.from(this.letterMap.values())
-            .map((sameLetterPoints) => [...sameLetterPoints])
-            .flatMap(this.findConnectedAreas);
-
-        return gardenPlots.map(this.calculateFencePrice).reduce(super.sum);
-    }
-
-    calculateFencePrice(gardenPlot: GardenPlot): number {
-        const boundarySum = gardenPlot.borderingPoints.length;
-        return boundarySum * gardenPlot.interiorPoints.length;
+        return this.gardenPlots.map(this.calculatePrice).reduce(super.sum);
     }
 
     solvePart2(): string | number {
-        let gardenPlots = Array.from(this.letterMap.values())
-            .map((sameLetterPoints) => [...sameLetterPoints])
-            .flatMap(this.findConnectedAreas);
-
-        // Calculate the total sum for part 2
         let price = 0;
 
-        for (const area of gardenPlots) {
-            let borderingPoints = [...area.borderingPoints];
-            let sides = [];
-            while (borderingPoints.length) {
-                const nextBorderPoint = borderingPoints.pop();
-                if (!nextBorderPoint) continue;
-                const newSide = [nextBorderPoint];
-
-                let possibleNextBorders = nextBorderPoint.point.directlyAdjacent();
-                let precursors = [nextBorderPoint.closestPlant];
-                let expanding = true;
-
-                while (expanding) {
-                    let toRemove: Array<BorderPoint> = [];
-
-                    expanding = false;
-                    borderingPoints
-                        .filter((borderPoint) => !newSide.includes(borderPoint))
-                        .filter(
-                            (borderPoint) =>
-                                possibleNextBorders.includes(borderPoint.point) &&
-                                precursors.some((precursor) =>
-                                    precursor.isDirectlyAdjacent(borderPoint.closestPlant)
-                                )
-                        )
-                        .forEach((borderPointToAdd) => {
-                            newSide.push(borderPointToAdd);
-                            precursors.push(borderPointToAdd.closestPlant);
-                            possibleNextBorders.push(
-                                ...borderPointToAdd.point.directlyAdjacent()
-                            );
-                            expanding = true;
-                            toRemove.push(borderPointToAdd);
-                        });
-                    borderingPoints = borderingPoints.filter(
-                        (borderPoint) => !toRemove.includes(borderPoint)
-                    );
-                }
-                sides.push(newSide);
-            }
-            price += sides.length * area.interiorPoints.length;
+        for (const gardenPlot of this.gardenPlots) {
+            const sides = this.calculateSides(gardenPlot);
+            price += sides * gardenPlot.interiorPoints.length;
         }
-
         return price;
     }
 
-    processInput(input: string): void {
-        this.letterMap = new Map<string, Array<Point>>();
-        let y = 0;
 
-        for (const row of input.split("\n")) {
-            for (let x = 0; x < row.length; x++) {
-                const letter = row[x];
-                if (!this.letterMap.has(letter)) {
-                    this.letterMap.set(letter, []);
+    calculatePrice(gardenPlot: GardenPlot): number {
+        const perimeter = gardenPlot.borderingPoints.length;
+        return perimeter * gardenPlot.interiorPoints.length;
+    }
+
+    calculateSides(gardenPlot: GardenPlot): number {
+        let borderingPoints = [...gardenPlot.borderingPoints];
+        let sideCount = 0;
+
+        while (borderingPoints.length > 0) {
+            const currentSide = this.expandSide(borderingPoints);
+            sideCount++;
+            borderingPoints = borderingPoints.filter((bp) => !currentSide.includes(bp));
+        }
+
+        return sideCount;
+    }
+
+    expandSide(borderingPoints: Array<BorderPoint>): Array<BorderPoint> {
+        const newSide: Array<BorderPoint> = [];
+        const firstPoint = borderingPoints.pop();
+        if (!firstPoint) return newSide;
+
+        newSide.push(firstPoint);
+        const queue: Array<BorderPoint> = [firstPoint];
+
+        while (queue.length > 0) {
+            const current = queue.shift();
+            if (!current) continue;
+
+            const possibleNextBorders = current.point.directlyAdjacent();
+
+            for (const borderPoint of borderingPoints) {
+                if (!newSide.includes(borderPoint) && possibleNextBorders.includes(borderPoint.point) && current.closestAreaPoint.isDirectlyAdjacent(borderPoint.closestAreaPoint)) {
+                    newSide.push(borderPoint);
+                    queue.push(borderPoint);
                 }
-                this.letterMap.get(letter)!.push(Point.get(x, y));
             }
-            y++;
+        }
+
+        return newSide;
+    }
+
+    processInput(input: string): void {
+        const letterMap = new Map<string, Array<Point>>();
+        input.split("\n").forEach((row, y) => {
+            [...row].forEach((letter, x) => {
+                if (!letterMap.has(letter)) {
+                    letterMap.set(letter, []);
+                }
+                letterMap.get(letter)!.push(Point.get(x, y));
+            });
+        });
+
+        this.gardenPlots = [];
+        for (const sameLetterPoints of letterMap.values()) {
+            this.gardenPlots.push(...this.findGardenPlots(sameLetterPoints));
         }
     }
 
-    private findConnectedAreas(allPoints: Array<Point>): Array<GardenPlot> {
+    findGardenPlots(allPoints: Array<Point>): Array<GardenPlot> {
         const gardenPlots: Array<GardenPlot> = [];
-
-        while (allPoints.length) {
-            const nextPoint = allPoints.pop();
-            if (!nextPoint) continue;
-
-            const connectedAreaPoints = [nextPoint];
+        while (allPoints.length > 0) {
+            const interiorPoints: Array<Point> = [];
             let borderingPoints: Array<BorderPoint> = [];
-
-            nextPoint.directlyAdjacent().forEach((adj) =>
-                borderingPoints.push({
-                    point: adj,
-                    closestPlant: nextPoint,
-                })
-            );
-
-            let expanding = true;
-
-            while (expanding) {
-                expanding = false;
-
-                const toRemove: Array<Point> = [];
-                allPoints
-                    .filter((point) =>
-                        borderingPoints.map((i) => i.point).includes(point)
-                    )
-                    .forEach((nextPointToAdd) => {
-                        connectedAreaPoints.push(nextPointToAdd);
-                        toRemove.push(nextPointToAdd);
-                        nextPointToAdd.directlyAdjacent().forEach((newBorderingPoint) =>
-                            borderingPoints.push({
-                                point: newBorderingPoint,
-                                closestPlant: nextPointToAdd,
-                            })
-                        );
-
-                        expanding = true;
-                    });
-
-                borderingPoints = borderingPoints.filter(
-                    (oldPoint) => !toRemove.includes(oldPoint.point)
-                );
-                allPoints = allPoints.filter(
-                    (oldPoint) => !toRemove.includes(oldPoint)
-                );
+            const areaPointsToAdd: Array<Point> = [allPoints.pop()!];
+            while (areaPointsToAdd.length > 0) {
+                const current = areaPointsToAdd.pop()!;
+                interiorPoints.push(current);
+                current.directlyAdjacent().forEach((adjacentPoint) => {
+                    const index = allPoints.indexOf(adjacentPoint);
+                    if (index !== -1) {
+                        areaPointsToAdd.push(adjacentPoint);
+                        allPoints.splice(index, 1);
+                    } else if (!interiorPoints.includes(adjacentPoint) && !areaPointsToAdd.includes(adjacentPoint)) {
+                        borderingPoints.push({
+                            point: adjacentPoint, closestAreaPoint: current,
+                        });
+                    }
+                });
             }
-            borderingPoints = borderingPoints.filter(
-                (oldPoint) => !connectedAreaPoints.includes(oldPoint.point)
-            );
-            gardenPlots.push({
-                interiorPoints: connectedAreaPoints,
-                borderingPoints: borderingPoints,
-            });
+            gardenPlots.push({interiorPoints, borderingPoints});
         }
-
         return gardenPlots;
     }
 }
