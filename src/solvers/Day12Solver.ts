@@ -2,72 +2,70 @@ import {PuzzleSolver} from "./PuzzleSolver";
 import {Point} from "../utility/Point";
 
 type GardenPlot = {
-    interiorPoints: Array<Point>; borderingPoints: Array<BorderPoint>;
+    interiorPoints: Array<Point>;
+    borderingPoints: Array<BorderPoint>;
 };
 
 type BorderPoint = {
-    point: Point; closestAreaPoint: Point;
+    point: Point;
+    closestAreaPoint: Point;
 };
 
 export default class Day12Solver extends PuzzleSolver {
     gardenPlots!: Array<GardenPlot>;
 
     solvePart1(): string | number {
-        return this.gardenPlots.map(this.calculatePrice).reduce(super.sum);
+        return this.gardenPlots.map(this.calculateSimplePrice).reduce(super.sum);
+    }
+
+    calculateSimplePrice(gardenPlot: GardenPlot): number {
+        const perimeter = gardenPlot.borderingPoints.length;
+        return perimeter * gardenPlot.interiorPoints.length;
     }
 
     solvePart2(): string | number {
         let price = 0;
 
         for (const gardenPlot of this.gardenPlots) {
-            const sides = this.calculateSides(gardenPlot);
-            price += sides * gardenPlot.interiorPoints.length;
+            price +=
+                this.calculateNumberOfSides(gardenPlot) *
+                gardenPlot.interiorPoints.length;
         }
         return price;
     }
 
-
-    calculatePrice(gardenPlot: GardenPlot): number {
-        const perimeter = gardenPlot.borderingPoints.length;
-        return perimeter * gardenPlot.interiorPoints.length;
+    calculateNumberOfSides(gardenPlot: GardenPlot): number {
+        return this.expandSides([...gardenPlot.borderingPoints]).length;
     }
 
-    calculateSides(gardenPlot: GardenPlot): number {
-        let borderingPoints = [...gardenPlot.borderingPoints];
-        let sideCount = 0;
-
+    expandSides(borderingPoints: Array<BorderPoint>): Array<Array<BorderPoint>> {
+        const sides: Array<Array<BorderPoint>> = [];
         while (borderingPoints.length > 0) {
-            const currentSide = this.expandSide(borderingPoints);
-            sideCount++;
-            borderingPoints = borderingPoints.filter((bp) => !currentSide.includes(bp));
-        }
-
-        return sideCount;
-    }
-
-    expandSide(borderingPoints: Array<BorderPoint>): Array<BorderPoint> {
-        const newSide: Array<BorderPoint> = [];
-        const firstPoint = borderingPoints.pop();
-        if (!firstPoint) return newSide;
-
-        newSide.push(firstPoint);
-        const queue: Array<BorderPoint> = [firstPoint];
-
-        while (queue.length > 0) {
-            const current = queue.shift();
-            if (!current) continue;
-
-            const possibleNextBorders = current.point.directlyAdjacent();
-
-            for (const borderPoint of borderingPoints) {
-                if (!newSide.includes(borderPoint) && possibleNextBorders.includes(borderPoint.point) && current.closestAreaPoint.isDirectlyAdjacent(borderPoint.closestAreaPoint)) {
-                    newSide.push(borderPoint);
-                    queue.push(borderPoint);
+            const newSide: Array<BorderPoint> = [];
+            const firstPoint = borderingPoints.pop()!;
+            newSide.push(firstPoint);
+            const queue: Array<BorderPoint> = [firstPoint];
+            while (queue.length > 0) {
+                const current = queue.shift();
+                if (!current) continue;
+                const possibleNextBorders = current.point.directlyAdjacent();
+                for (const borderPoint of borderingPoints) {
+                    if (
+                        !newSide.includes(borderPoint) &&
+                        possibleNextBorders.includes(borderPoint.point) &&
+                        current.closestAreaPoint.isDirectlyAdjacent(
+                            borderPoint.closestAreaPoint
+                        )
+                    ) {
+                        newSide.push(borderPoint);
+                        queue.push(borderPoint);
+                    }
                 }
             }
+            sides.push(newSide);
+            borderingPoints = borderingPoints.filter((bp) => !newSide.includes(bp));
         }
-
-        return newSide;
+        return sides;
     }
 
     processInput(input: string): void {
@@ -101,9 +99,13 @@ export default class Day12Solver extends PuzzleSolver {
                     if (index !== -1) {
                         areaPointsToAdd.push(adjacentPoint);
                         allPoints.splice(index, 1);
-                    } else if (!interiorPoints.includes(adjacentPoint) && !areaPointsToAdd.includes(adjacentPoint)) {
+                    } else if (
+                        !interiorPoints.includes(adjacentPoint) &&
+                        !areaPointsToAdd.includes(adjacentPoint)
+                    ) {
                         borderingPoints.push({
-                            point: adjacentPoint, closestAreaPoint: current,
+                            point: adjacentPoint,
+                            closestAreaPoint: current,
                         });
                     }
                 });
