@@ -16,46 +16,6 @@ type AreaSide = {
 export default class Day12Solver extends PuzzleSolver {
     gardenPlots!: Array<GardenPlot>;
 
-    solvePart1(): string | number {
-        return this.gardenPlots.map(this.calculateSimplePrice).reduce(super.sum);
-    }
-
-    calculateSimplePrice(gardenPlot: GardenPlot): number {
-        const perimeter = gardenPlot.borderingPoints.length;
-        return perimeter * gardenPlot.interiorPoints.length;
-    }
-
-    solvePart2(): string | number {
-        let price = 0;
-
-        for (const gardenPlot of this.gardenPlots) {
-            price += this.calculateNumberOfSides(gardenPlot) * gardenPlot.interiorPoints.length;
-        }
-        return price;
-    }
-
-    calculateNumberOfSides(gardenPlot: GardenPlot): number {
-        return this.findStraightSides([...gardenPlot.borderingPoints]).length;
-    }
-
-    findStraightSides(borderingPoints: Array<BorderPoint>): Array<AreaSide> {
-        const sides: Array<AreaSide> = [];
-        while (borderingPoints.length > 0) {
-            const newSide: Array<BorderPoint> = [];
-            const areaPointsToAdd: Array<BorderPoint> = [borderingPoints.pop()!];
-
-            while (areaPointsToAdd.length > 0) {
-                const current = areaPointsToAdd.pop()!;
-                newSide.push(current);
-                const nextToAddSidePoints = borderingPoints.filter((borderPoint) => current.point.isDirectlyAdjacent(borderPoint.point) && current.adjacentInteriorPoint.isDirectlyAdjacent(borderPoint.adjacentInteriorPoint));
-                areaPointsToAdd.push(...nextToAddSidePoints);
-                borderingPoints = borderingPoints.filter((borderPoint) => !nextToAddSidePoints.includes(borderPoint));
-            }
-            sides.push({points: newSide});
-        }
-        return sides;
-    }
-
     processInput(input: string): void {
         const letterMap = new Map<string, Array<Point>>();
         input.split("\n").forEach((row, y) => {
@@ -100,5 +60,45 @@ export default class Day12Solver extends PuzzleSolver {
             gardenPlots.push({interiorPoints, borderingPoints});
         }
         return gardenPlots;
+    }
+
+    solvePart1(): string | number {
+        return this.gardenPlots.map(this.calculateSimplePrice).reduce(super.sum);
+    }
+
+    calculateSimplePrice(gardenPlot: GardenPlot): number {
+        const perimeter = gardenPlot.borderingPoints.length;
+        return perimeter * gardenPlot.interiorPoints.length;
+    }
+
+    solvePart2(): string | number {
+        let price = 0;
+
+        for (const gardenPlot of this.gardenPlots) {
+            price += this.calculateNumberOfSides(gardenPlot) * gardenPlot.interiorPoints.length;
+        }
+        return price;
+    }
+
+    calculateNumberOfSides(gardenPlot: GardenPlot): number {
+        return this.findStraightSides([...gardenPlot.borderingPoints]).length;
+    }
+
+    findStraightSides(borderingPoints: Array<BorderPoint>): Array<AreaSide> {
+        const sides: Array<AreaSide> = [];
+        while (borderingPoints.length > 0) {
+            const newSide: Array<BorderPoint> = [];
+            const areaPointsToAdd: Array<BorderPoint> = [borderingPoints.pop()!];
+
+            while (areaPointsToAdd.length > 0) {
+                const current = areaPointsToAdd.pop()!;
+                newSide.push(current);
+                const nextToAddSidePoints = borderingPoints.filter((borderPoint) => current.point.isDirectlyAdjacent(borderPoint.point) && current.adjacentInteriorPoint.isDirectlyAdjacent(borderPoint.adjacentInteriorPoint));
+                areaPointsToAdd.push(...nextToAddSidePoints);
+                borderingPoints = borderingPoints.filter((borderPoint) => !nextToAddSidePoints.includes(borderPoint));
+            }
+            sides.push({points: newSide});
+        }
+        return sides;
     }
 }
