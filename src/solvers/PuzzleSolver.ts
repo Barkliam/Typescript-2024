@@ -10,4 +10,6 @@ export abstract class PuzzleSolver {
     sum(a: number, b: number): number {
         return a + b;
     }
+
+
 }

@@ -16,6 +16,11 @@ export class Point {
         return Point.unitVectorCache;
     }
 
+    static parseString(stringToParse: string): Point {
+        const [x, y] = stringToParse.split(",").map(Number)
+        return Point.get(x, y)
+    }
+
     directlyAdjacent(): Point[] {
         return Point.unitVectors.filter(point => !(point.x * point.y)).map(point => this.add(point))
     }
