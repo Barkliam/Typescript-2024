@@ -10,10 +10,11 @@ interface Robot {
 const BOUNDARIES = {height: 103, width: 101};
 
 export default class Day14Solver extends PuzzleSolver {
+    elapsedTimeSteps = 0;
     private robots!: Array<Robot>;
 
     solvePart1(): string | number {
-        this.robots.forEach((robot) => this.moveRobot(robot, 100));
+        this.moveRobots(100);
         const quadrants = this.divideIntoQuadrants(
             this.robots.map((robot) => robot.position)
         );
@@ -23,7 +24,16 @@ export default class Day14Solver extends PuzzleSolver {
     }
 
     solvePart2(): string | number {
-        return "Default solution to part 2";
+        for (let i = 0; i < 10000; i++) {
+            this.moveRobots(1);
+            if (
+                this.numTouchingPoints(this.robots.map((robot) => robot.position)) > 50
+            ) {
+                this.printGrid();
+                return i;
+            }
+        }
+        return -1;
     }
 
     processInput(input: string): void {
@@ -46,9 +56,14 @@ export default class Day14Solver extends PuzzleSolver {
         );
     }
 
-    private moveRobot(robot: Robot, timeSteps: number) {
-        const newPosition = robot.velocity.multiply(timeSteps).add(robot.position);
-        robot.position = this.wrapPointWithinBounds(newPosition);
+    private moveRobots(timeSteps: number) {
+        this.elapsedTimeSteps += timeSteps;
+        this.robots.forEach((robot) => {
+            const newPosition = robot.velocity
+                .multiply(timeSteps)
+                .add(robot.position);
+            robot.position = this.wrapPointWithinBounds(newPosition);
+        });
     }
 
     private wrapPointWithinBounds(point: Point): Point {
@@ -60,28 +75,38 @@ export default class Day14Solver extends PuzzleSolver {
             wrapCoordinate(point.y, BOUNDARIES.height)
         );
     }
+
+    private printGrid() {
+        const points = this.robots.map((robot) => robot.position);
+        let gridString = "";
+        for (let y = 0; y < BOUNDARIES.height; y++) {
+            for (let x = 0; x < BOUNDARIES.width; x++) {
+                gridString +=
+                    points.filter((pos) => pos === Point.get(x, y)).length || ".";
+            }
+            gridString += "\n";
+        }
+        console.log(gridString);
+    }
+
+    private numTouchingPoints(points: Point[]) {
+        const groups = [];
+        while (points.length) {
+            let toAdd = [points.pop()];
+            const currentGroup = [];
+            while (toAdd.length) {
+                const curr = toAdd.pop()!;
+                currentGroup.push(curr);
+                for (const adjacent of curr
+                    .directlyAdjacent()
+                    .filter((da) => points.includes(da))) {
+                    toAdd.push(adjacent);
+                    const index = points.indexOf(adjacent);
+                    points.splice(index, 1);
+                }
+            }
+            groups.push(currentGroup);
+        }
+        return Math.max(...groups.map((group) => group.length));
+    }
 }
-
-
-
-
-// return this.divideIntoQuadrants(robotPositions).map(quadrantList => quadrantList.length).reduce((a,b) => a*b, 1)
-
-// for (let i = 0; i < 4; i++ ) {
-//     let toPrint = "";
-//     if (!message[i]){
-//         console.log("invalid index", message[i], message)
-//         continue
-//     }
-//
-//     for (let y = 0; y < boundaries.height; y++) {
-//         for (let x = 0; x < boundaries.width; x++) {
-//             toPrint += message[i].filter(pos => pos === Point.get(x, y)).length || "."
-//         }
-//         toPrint += "\n"
-//     }
-// console.log(toPrint)
-// }
-//         console.log(robotPositions)
-// console.log(toPrint)
-//         console.log(-70 % 12, 70%12)
