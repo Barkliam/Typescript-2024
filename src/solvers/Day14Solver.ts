@@ -15,24 +15,25 @@ export default class Day14Solver extends PuzzleSolver {
 
     solvePart1(): number {
         this.moveRobots(100);
-        const quadrants = this.divideIntoQuadrants(
-            this.robots.map((robot) => robot.position)
-        );
+        const quadrants = this.divideIntoQuadrants(this.robotPositions());
         return Object.values(quadrants)
             .map((quadrant) => quadrant.length)
             .reduce((a, b) => a * b, 1);
     }
 
+    robotPositions() {
+        return this.robots.map((robot) => robot.position);
+    }
+
     solvePart2(): number {
         const MAX_ITERATIONS = 10000;
         const TIMESTEPS_PER_ITERATION = 1;
-        const ADJACENT_ROBOT_THRESHOLD = 50;
+        const ADJACENCY_THRESHOLD = 50;
 
         for (let i = 0; i < MAX_ITERATIONS; i++) {
             this.moveRobots(TIMESTEPS_PER_ITERATION);
             if (
-                this.numTouchingPoints(this.robots.map((robot) => robot.position)) >
-                ADJACENT_ROBOT_THRESHOLD
+                this.hasNumAdjacentPoints(this.robotPositions(), ADJACENCY_THRESHOLD)
             ) {
                 this.printGrid();
                 return this.elapsedTimeSteps;
@@ -94,17 +95,21 @@ export default class Day14Solver extends PuzzleSolver {
         console.log(gridString);
     }
 
-    private numTouchingPoints(points: Point[]) {
+    private hasNumAdjacentPoints(
+        points: Point[],
+        adjacencyThreshold: number
+    ): boolean {
         const groups = [];
         while (points.length) {
             let toAdd = [points.pop()];
             const currentGroup = [];
             while (toAdd.length) {
-                const curr = toAdd.pop()!;
-                currentGroup.push(curr);
-                for (const adjacent of curr
+                const current = toAdd.pop()!;
+                currentGroup.push(current);
+                if (currentGroup.length > adjacencyThreshold) return true;
+                for (const adjacent of current
                     .directlyAdjacent()
-                    .filter((da) => points.includes(da))) {
+                    .filter(points.includes.bind(points))) {
                     toAdd.push(adjacent);
                     const index = points.indexOf(adjacent);
                     points.splice(index, 1);
@@ -112,6 +117,6 @@ export default class Day14Solver extends PuzzleSolver {
             }
             groups.push(currentGroup);
         }
-        return Math.max(...groups.map((group) => group.length));
+        return false;
     }
 }
