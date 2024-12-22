@@ -8,50 +8,49 @@ const START_DIRECTION = Direction.RIGHT;
 class Path {
 
     visited: Array<MazeNode> = new Array<MazeNode>()
-    currentNode: MazeNode
     end: MazeNode
+    precursor: Path | undefined
 
-    constructor(visited: Array<MazeNode>, currentNode: MazeNode, end: MazeNode) {
+    constructor(visited: Array<MazeNode>, end: MazeNode, precursor: Path | undefined) {
         this.visited = visited;
-        this.currentNode = currentNode;
         this.end = end
+        this.precursor = precursor
     }
 
     possibleNextSteps(): Array<MazeNode> {
-        return Array.from(this.currentNode.connected.keys()).filter(node => !this.visited.includes(node))
+        return Array.from(this.visited[0].connected.keys()).filter(node => !this.visited.includes(node))
     }
 
 //instead of creating all new paths here, keep creating new child paths with reference to parent paths that end at the split.
     continue(): Array<Path> {
 
         while (this.possibleNextSteps().length === 1) {
-            this.visited.push(this.currentNode)
-            this.currentNode = this.possibleNextSteps()[0]
-            if (this.currentNode === this.end) {
+
+            this.visited.unshift(this.possibleNextSteps()[0])
+            if (this.visited[0] === this.end) {
                 return [this]
             }
         }
-        // if (this.p === 0){
-        //     return [this]
-        // }
-        this.visited.push(this.currentNode)
 
-        return this.possibleNextSteps().map(node => new Path([...this.visited], node, this.end)
+        return this.possibleNextSteps().map(node => new Path([node, ...this.visited], this.end, undefined)
         )
 
     }
 
-    isFinished(): boolean {
-        return this.currentNode.point === this.end.point
-            || Array.from(this.currentNode.connected.keys()).every(node => this.visited.includes(node))
+    isFinsished(): boolean {
+        return this.visited[0].point === this.end.point
+    }
+
+    isDeadEnd(): boolean {
+        return Array.from(this.visited[0].connected.keys()).every(node => this.visited.includes(node))
     }
 
     calculateScore() {
-        this.visited.push(this.currentNode)
 
         let directionChanges: number = 0;
         let direction = START_DIRECTION;
-        let lastNode: MazeNode | undefined = undefined
+        let lastNode: MazeNode | undefined
+        this.visited.reverse()
 
 
         for (const node of this.visited) {
@@ -85,23 +84,30 @@ class Maze {
     findPaths() {
         let unfinishedPaths: Array<Path> = [];
         let finishedPaths: Array<Path> = [];
-        unfinishedPaths.push(new Path([], this.start, this.end))
+        unfinishedPaths.push(new Path([this.start], this.end, undefined))
 
         while (unfinishedPaths.length) {
             const currentPath = unfinishedPaths.pop();
+            // this.printPath(currentPath)
             if (!currentPath) throw new Error(" current path undefeinde")
             let continuedPaths: Array<Path> = currentPath.continue();
             continuedPaths.forEach(path => {
-                if (path.isFinished()) {
-                    if (path.currentNode === this.end) {
-                        finishedPaths.push(path)
-                    }
-                } else {
+                if (path.isFinsished()) {
+                    finishedPaths.push(path)
+                } else if (!path.isDeadEnd()) {
                     unfinishedPaths.push(path)
                 }
             })
         }
-        for (const path of finishedPaths) {
+        //finishedPaths.forEach(path => this.printPath(path));
+
+
+        return finishedPaths;
+
+    }
+
+    private printPath(path: Path | undefined) {
+        if (!path) return
             let printString = "";
 
             for (let y = 0; y < 15; y++) {
@@ -116,7 +122,7 @@ class Maze {
                     } else if (!this.nodeMap.has(point)) {
                         printString += "#";
                         continue;
-                    } else if (path.currentNode.point === point) {
+                    } else if (path.visited[0].point === point) {
                         printString += "X"
                         continue;
                     } else if (path.visited.map(node => node.point).includes(point)) {
@@ -129,13 +135,9 @@ class Maze {
                 printString += "\n"
             }
 
-//console.log(printString)
+        console.log(printString)
 
 
-        }
-
-
-        return finishedPaths;
 
     }
 
