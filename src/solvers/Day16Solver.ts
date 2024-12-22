@@ -1,5 +1,6 @@
 import {PuzzleSolver} from "./PuzzleSolver";
 import {Direction, getDirectionVector, Point} from "../utility/Point";
+import PriorityQueue from "priority-queue-typescript";
 
 const directions = [
     Direction.LEFT,
@@ -13,7 +14,8 @@ class Path {
     visited: Array<MazeNode> = new Array<MazeNode>();
     end: MazeNode;
     precursor: Path | undefined;
-    cachedAllNodes: Array<MazeNode> | undefined
+    cachedAllNodes: Array<MazeNode> | undefined;
+    cachedAllNodesSet: Set<MazeNode> | undefined
     cachedScore: number | undefined;
 
     constructor(
@@ -33,23 +35,45 @@ class Path {
     }
 
     hasSeen(node: MazeNode): boolean {
+        if (this.cachedAllNodesSet) {
+            return this.cachedAllNodesSet.has(node)
+        }
         return (
             this.visited.includes(node) ||
             (this.precursor ? this.precursor.hasSeen(node) : false)
         );
     }
 
-    continue(): Array<Path> {
+    goUntilFork() {
         while (this.possibleNextSteps().length === 1) {
             this.visited.unshift(this.possibleNextSteps()[0]);
             if (this.visited[0] === this.end) {
-                return [this];
+                return;
             }
         }
+        this.cachedScore = this.calculateScore();
+        this.cachedAllNodes = this.getAllNodes();
+        this.cachedAllNodesSet = new Set(this.cachedAllNodes)
+    }
+
+    continue(): Array<Path> {
+        // while (this.possibleNextSteps().length === 1) {
+        //     this.visited.unshift(this.possibleNextSteps()[0]);
+        //     if (this.visited[0] === this.end) {
+        //         return [this];
+        //     }
+        // }
 
         return this.possibleNextSteps().map(
-            (node) => new Path([node], this.end, this)
-        );
+            node => {
+
+                const newPath = new Path([node], this.end, this)
+
+                newPath.goUntilFork()
+
+                return newPath
+
+            });
     }
 
     isFinsished(): boolean {
@@ -58,16 +82,17 @@ class Path {
 
     isDeadEnd(): boolean {
         return Array.from(this.visited[0].connected.keys()).every((node) =>
-            this.visited.includes(node)
+            this.cachedAllNodesSet?.has(node)
         );
     }
 
     getAllNodes(): Array<MazeNode> {
-        if (!this.cachedAllNodes) {
-            const precursorNodes = this.precursor?.getAllNodes() || [];
-            this.cachedAllNodes = [...this.visited, ...precursorNodes];
-        }
-        return this.cachedAllNodes;
+        return (
+            this.cachedAllNodes || [
+                ...this.visited,
+                ...(this.precursor?.getAllNodes() || []),
+            ]
+        );
     }
 
     getScore() {
@@ -88,8 +113,7 @@ class Path {
             lastNode = node;
             direction = newDirection;
         }
-        this.cachedScore = allNodes.length + 1000 * directionChanges - 1;
-        return this.cachedScore
+        return allNodes.length + 1000 * directionChanges - 1;
     }
 }
 
@@ -112,21 +136,25 @@ class Maze {
     }
 
     findPaths() {
-        let unfinishedPaths: Array<Path> = [];
+        let unfinishedPaths: PriorityQueue<Path> = new PriorityQueue<Path>(
+            100,
+            function (a: Path, b: Path) {
+                return a.getScore() - b.getScore();
+            }
+        );
         let finishedPaths: Array<Path> = [];
-        unfinishedPaths.push(new Path([this.start], this.end, undefined));
-        while (unfinishedPaths.length) {
-
-
-            //instead of pop, use priority queue to get lowest score path
-            const currentPath = unfinishedPaths.pop();
-            if (!currentPath) throw new Error(" current path undefeinde");
+        unfinishedPaths.add(new Path([this.start], this.end, undefined));
+        //stop as soon as first finished path is found
+        while (!finishedPaths.length) {
+            const currentPath = unfinishedPaths.poll();
+            if (!currentPath) throw new Error("No path to end");
             let continuedPaths: Array<Path> = currentPath.continue();
             continuedPaths.forEach((path) => {
                 if (path.isFinsished()) {
                     finishedPaths.push(path);
                 } else if (!path.isDeadEnd()) {
-                    unfinishedPaths.push(path);
+                    //is it possible for each new path to immediately travel until the next fork to have an accurate score
+                    unfinishedPaths.add(path);
                 }
             });
         }
@@ -193,9 +221,7 @@ export default class Day16Solver extends PuzzleSolver {
     maze!: Maze;
 
     solvePart1(): string | number {
-        return Math.min(
-            ...this.maze.findPaths().map((path) => path.getScore())
-        );
+        return Math.min(...this.maze.findPaths().map((path) => path.getScore()));
     }
 
     solvePart2(): string | number {

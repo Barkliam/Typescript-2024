@@ -10,7 +10,8 @@
     "clang-format": "^1.8.0",
     "fs-extra": "^11.0.0",
     "lodash": "^4.17.21",
-    "priority-queue-typescript": "^2.0.3"
+    "priority-queue-typescript": "^2.0.3",
+    "ts-priority-queue": "^0.1.1"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.26.0",
