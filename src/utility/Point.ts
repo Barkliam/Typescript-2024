@@ -1,6 +1,10 @@
 export class Point {
     private static pointMap: Map<string, Point> = new Map();
     private static unitVectorCache: Point[] | null = null;
+    private static nonDiagonalVectorCache: Point[] | null = null;
+
+    private constructor(public readonly x: number, public readonly y: number) {
+    }
 
     static get unitVectors(): Point[] {
         if (!Point.unitVectorCache) {
@@ -16,16 +20,16 @@ export class Point {
         return Point.unitVectorCache;
     }
 
+    static get nonDiagonalVectors(): Point[] {
+        if (!Point.nonDiagonalVectorCache) {
+            Point.nonDiagonalVectorCache = Point.unitVectors.filter(point => !(point.x * point.y));
+        }
+        return Point.nonDiagonalVectorCache
+    }
+
     static parseString(stringToParse: string): Point {
         const [x, y] = stringToParse.split(",").map(Number)
         return Point.get(x, y)
-    }
-
-    directlyAdjacent(): Point[] {
-        return Point.unitVectors.filter(point => !(point.x * point.y)).map(point => this.add(point))
-    }
-
-    private constructor(public readonly x: number, public readonly y: number) {
     }
 
     static get(x: number, y: number): Point {
@@ -34,6 +38,10 @@ export class Point {
             Point.pointMap.set(key, new Point(x, y));
         }
         return Point.pointMap.get(key)!;
+    }
+
+    directlyAdjacent(): Point[] {
+        return Point.unitVectors.filter(point => !(point.x * point.y)).map(point => this.add(point))
     }
 
     rotateRight(): Point {
@@ -55,4 +63,15 @@ export class Point {
     isDirectlyAdjacent(point: Point) {
         return this.directlyAdjacent().includes(point);
     }
+}
+
+export enum Direction {
+    LEFT = 0, UP = 1, DOWN = 2, RIGHT = 3,
+
+
+}
+
+
+export function getDirectionVector(direction: Direction): Point {
+    return Point.nonDiagonalVectors[direction];
 }
