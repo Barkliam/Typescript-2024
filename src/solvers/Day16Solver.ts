@@ -17,11 +17,11 @@ class Path {
         this.end = end
     }
 
-    // do not backtrack, clone path at split
     possibleNextSteps(): Array<MazeNode> {
         return Array.from(this.currentNode.connected.keys()).filter(node => !this.visited.includes(node))
     }
 
+//instead of creating all new paths here, keep creating new child paths with reference to parent paths that end at the split.
     continue(): Array<Path> {
 
         while (this.possibleNextSteps().length === 1) {
@@ -88,14 +88,17 @@ class Maze {
         unfinishedPaths.push(new Path([], this.start, this.end))
 
         while (unfinishedPaths.length) {
-            // if (unfinishedPaths.length > 10){
-            //     return unfinishedPaths;
-            // }
             const currentPath = unfinishedPaths.pop();
             if (!currentPath) throw new Error(" current path undefeinde")
             let continuedPaths: Array<Path> = currentPath.continue();
             continuedPaths.forEach(path => {
-                (path.isFinished() ? finishedPaths : unfinishedPaths).push(path)
+                if (path.isFinished()) {
+                    if (path.currentNode === this.end) {
+                        finishedPaths.push(path)
+                    }
+                } else {
+                    unfinishedPaths.push(path)
+                }
             })
         }
         for (const path of finishedPaths) {
@@ -136,41 +139,6 @@ class Maze {
 
     }
 
-    findPathWithFewestTurns(): Direction[] | null {
-        if (!this.start || !this.end) return null;
-
-        // Queue stores [currentNode, prevDirection, turns, path]
-        const queue: Array<[MazeNode, Direction | null, number, Direction[]]> = [];
-        const bestTurns: Map<MazeNode, number> = new Map(); // Best turns to each node
-
-        // Initialize with the start node
-        queue.push([this.start, null, 0, []]);
-        bestTurns.set(this.start, 0);
-
-        while (queue.length > 0) {
-            const [currentNode, prevDirection, turns, path] = queue.shift()!;
-
-            // If we've reached the end node, return the path
-            if (currentNode === this.end) {
-                return path;
-            }
-
-            // Explore all connected nodes
-            for (const [nextNode, direction] of currentNode.connected.entries()) {
-                const newTurns = prevDirection === null || prevDirection === direction ? turns : turns + 1;
-
-                // Only proceed if we find a path with fewer turns
-                if (!bestTurns.has(nextNode) || newTurns < bestTurns.get(nextNode)!) {
-                    bestTurns.set(nextNode, newTurns);
-                    queue.push([nextNode, direction, newTurns, [...path, direction]]);
-                }
-            }
-        }
-
-        // If no path was found, return null
-        return null;
-    }
-
     private addConnections() {
         for (const [point, node] of this.nodeMap.entries()) {
             directions.forEach(direction => {
@@ -206,7 +174,7 @@ export default class Day16Solver extends PuzzleSolver {
 
     solvePart1(): string | number {
 //console.log(this.maze.findPaths().map(path => path.visited.map(node => node.point)))
-        return Math.min(...this.maze.findPaths().filter(path => path.currentNode === path.end).map(path => path.calculateScore()))
+        return Math.min(...this.maze.findPaths().map(path => path.calculateScore()))
 
 
 
