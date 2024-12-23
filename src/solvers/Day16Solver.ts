@@ -1,6 +1,5 @@
 import {PuzzleSolver} from "./PuzzleSolver";
 import {Direction, getDirectionVector, Point} from "../utility/Point";
-import PriorityQueue from "priority-queue-typescript";
 
 const directions = [
     Direction.LEFT,
@@ -8,114 +7,10 @@ const directions = [
     Direction.DOWN,
     Direction.RIGHT,
 ];
-const START_DIRECTION = Direction.RIGHT;
 
-class Path {
-    visited: Array<MazeNode> = new Array<MazeNode>();
-    end: MazeNode;
-    precursor: Path | undefined;
-    cachedAllNodes: Array<MazeNode> | undefined;
-    cachedAllNodesSet: Set<MazeNode> | undefined
-    cachedScore: number | undefined;
+type DirectionScore = { score: number, direction: Direction, prevNodes: Array<MazeNode> }
 
-    constructor(
-        visited: Array<MazeNode>,
-        end: MazeNode,
-        precursor: Path | undefined
-    ) {
-        this.visited = visited;
-        this.end = end;
-        this.precursor = precursor;
-    }
 
-    possibleNextSteps(): Array<MazeNode> {
-        return Array.from(this.visited[0].connected.keys()).filter(
-            (node) => !this.hasSeen(node)
-        );
-    }
-
-    hasSeen(node: MazeNode): boolean {
-        if (this.cachedAllNodesSet) {
-            return this.cachedAllNodesSet.has(node)
-        }
-        return (
-            this.visited.includes(node) ||
-            (this.precursor ? this.precursor.hasSeen(node) : false)
-        );
-    }
-
-    goUntilFork() {
-        while (this.possibleNextSteps().length === 1) {
-            this.visited.unshift(this.possibleNextSteps()[0]);
-            if (this.visited[0] === this.end) {
-                return;
-            }
-        }
-        this.cachedScore = this.calculateScore();
-        this.cachedAllNodes = this.getAllNodes();
-        this.cachedAllNodesSet = new Set(this.cachedAllNodes)
-    }
-
-    continue(): Array<Path> {
-        // while (this.possibleNextSteps().length === 1) {
-        //     this.visited.unshift(this.possibleNextSteps()[0]);
-        //     if (this.visited[0] === this.end) {
-        //         return [this];
-        //     }
-        // }
-
-        return this.possibleNextSteps().map(
-            node => {
-
-                const newPath = new Path([node], this.end, this)
-
-                newPath.goUntilFork()
-
-                return newPath
-
-            });
-    }
-
-    isFinsished(): boolean {
-        return this.visited[0].point === this.end.point;
-    }
-
-    isDeadEnd(): boolean {
-        return Array.from(this.visited[0].connected.keys()).every((node) =>
-            this.cachedAllNodesSet?.has(node)
-        );
-    }
-
-    getAllNodes(): Array<MazeNode> {
-        return (
-            this.cachedAllNodes || [
-                ...this.visited,
-                ...(this.precursor?.getAllNodes() || []),
-            ]
-        );
-    }
-
-    getScore() {
-        return this.cachedScore || this.calculateScore();
-    }
-
-    calculateScore() {
-        let directionChanges: number = 0;
-        let direction = START_DIRECTION;
-        let lastNode: MazeNode | undefined;
-        const allNodes = this.getAllNodes().reverse();
-
-        for (const node of allNodes) {
-            let newDirection = lastNode?.connected.get(node) || START_DIRECTION;
-            if (newDirection !== direction) {
-                directionChanges++;
-            }
-            lastNode = node;
-            direction = newDirection;
-        }
-        return allNodes.length + 1000 * directionChanges - 1;
-    }
-}
 
 class Maze {
     nodeMap: Map<Point, MazeNode>;
@@ -135,62 +30,9 @@ class Maze {
         this.addConnections();
     }
 
-    findPaths() {
-        let unfinishedPaths: PriorityQueue<Path> = new PriorityQueue<Path>(
-            100,
-            function (a: Path, b: Path) {
-                return a.getScore() - b.getScore();
-            }
-        );
-        let finishedPaths: Array<Path> = [];
-        unfinishedPaths.add(new Path([this.start], this.end, undefined));
-        //stop as soon as first finished path is found
-        while (!finishedPaths.length) {
-            const currentPath = unfinishedPaths.poll();
-            if (!currentPath) throw new Error("No path to end");
-            let continuedPaths: Array<Path> = currentPath.continue();
-            continuedPaths.forEach((path) => {
-                if (path.isFinsished()) {
-                    finishedPaths.push(path);
-                } else if (!path.isDeadEnd()) {
-                    //is it possible for each new path to immediately travel until the next fork to have an accurate score
-                    unfinishedPaths.add(path);
-                }
-            });
-        }
 
-        return finishedPaths;
-    }
 
-    private printPath(path: Path | undefined) {
-        if (!path) return;
-        let printString = "";
 
-        for (let y = 0; y < 15; y++) {
-            for (let x = 0; x < 15; x++) {
-                const point = Point.get(x, y);
-                if (point === this.start.point) {
-                    printString += "S";
-                } else if (point === this.end.point) {
-                    printString += "E";
-                } else if (!this.nodeMap.has(point)) {
-                    printString += "#";
-                } else if (path.visited[0].point === point) {
-                    printString += "X";
-                } else if (path.visited.map((node) => node.point).includes(point)) {
-                    printString += "O";
-                } else {
-                    printString += ".";
-                }
-            }
-            printString += "\n";
-        }
-
-        console.log(printString);
-        if (path.precursor) {
-            this.printPath(path.precursor);
-        }
-    }
 
     private addConnections() {
         for (const [point, node] of this.nodeMap.entries()) {
@@ -217,11 +59,37 @@ class MazeNode {
 }
 
 export default class Day16Solver extends PuzzleSolver {
-    tileScoreMap: Map<Point, number[]> = new Map<Point, number[]>();
     maze!: Maze;
 
     solvePart1(): string | number {
-        return Math.min(...this.maze.findPaths().map((path) => path.getScore()));
+        const {nodeMap, start, end} = this.maze
+        const scoreMap: Map<MazeNode, DirectionScore> = new Map();
+        const toVisit = [start]
+        while (toVisit.length) {
+            const current = toVisit.pop()
+            if (!current) throw new Error("didnt find end")
+            if (current.point.x == 4 && current.point.y == 7) console.log("47")
+            const {direction, score} = (scoreMap.get(current) || {
+                direction: Direction.RIGHT,
+                score: 0
+            })
+            for (const [adjacentNode, nextDirection] of current.connected.entries()) {
+                const lastSavedScore = scoreMap.get(adjacentNode)?.score || Infinity
+                const newScore = score + 1 + (nextDirection == direction ? 0 : 1000)
+                if ((newScore === lastSavedScore || Math.abs(newScore - lastSavedScore) === 1000) && !scoreMap.get(adjacentNode)?.prevNodes.includes(current)) console.log(adjacentNode.point)
+                if (newScore < lastSavedScore) {
+                    scoreMap.set(adjacentNode, {
+                        direction: nextDirection,
+                        score: newScore,
+                        prevNodes: [current]
+                    })
+                    toVisit.push(adjacentNode)
+                }
+            }
+        }
+
+
+        return scoreMap.get(end)?.score || -1
     }
 
     solvePart2(): string | number {

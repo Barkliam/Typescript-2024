@@ -16,8 +16,8 @@ test('Day 16 Part 1 Test Input 2', () => {
 });
 
 test('Day 16 Part 2 Test Input 1', () => {
-    dayTest.testPart(2, '80', 1);
+    dayTest.testPart(2, '45', 1);
 });
 test('Day 16 Part 2 Test Input 2', () => {
-    dayTest.testPart(2, '436', 2);
+    dayTest.testPart(2, '64', 2);
 });
