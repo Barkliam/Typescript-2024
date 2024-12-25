@@ -5,28 +5,45 @@ type Shortcut = {
     wallPoint: Point;
     timeSaved: number;
 };
-
 export default class Day20Solver extends PuzzleSolver {
     walls!: Array<Point>;
     racetrack!: Array<Point>;
-    raceTrackIndexMap!: Map<Point, number>;
-
-    solvePart1(): string | number {
-        // Precompute race track indices
-        this.raceTrackIndexMap = new Map<Point, number>();
-        this.racetrack.forEach((point, index) =>
-            this.raceTrackIndexMap.set(point, index)
-        );
-
-        // Precompute shortcuts
-        const shortcuts: Array<Shortcut> = this.findShortcuts();
-
-        // Count shortcuts with significant time savings
-        return shortcuts.filter((shortcut) => shortcut.timeSaved >= 100).length;
-    }
 
     solvePart2(): string | number {
         return "Default solution to part 2";
+    }
+
+    solvePart1(): string | number {
+        const raceTrackPositionMap: Map<Point, number> = new Map<Point, number>();
+        for (let index = 0; index < this.racetrack.length; index++) {
+            raceTrackPositionMap.set(this.racetrack[index], index);
+        }
+
+        const shortcuts: Array<Shortcut> = [];
+        for (let i = 0; i < this.walls.length; i++) {
+            const wallPoint = this.walls[i];
+            const adjacentRaceTrackPoints = wallPoint
+                .directlyAdjacent()
+                .filter((adj) => raceTrackPositionMap.has(adj));
+            if (adjacentRaceTrackPoints.length == 2) {
+                const first = raceTrackPositionMap.get(adjacentRaceTrackPoints[0]);
+                const second = raceTrackPositionMap.get(adjacentRaceTrackPoints[1]);
+                if (first == undefined || second == undefined)
+                    throw new Error("racetrack points not in map");
+                const timeSaved = Math.abs(first - second) - 2;
+                shortcuts.push({wallPoint, timeSaved});
+            }
+        }
+        const shortcutMap: Map<number, number> = shortcuts.reduce(
+            (map, shortcut) => {
+                const prevValue = map.get(shortcut.timeSaved) || 0;
+                map.set(shortcut.timeSaved, prevValue + 1);
+                return map;
+            },
+            new Map<number, number>()
+        );
+
+        return shortcuts.filter((shortcut) => shortcut.timeSaved >= 100).length;
     }
 
     processInput(input: string): void {
@@ -45,8 +62,8 @@ export default class Day20Solver extends PuzzleSolver {
                     break;
                 case "S":
                     start = point;
-                    raceTrackPoints.add(point);
                     break;
+                //end doesn't actually need to be saved because there are no forks
                 case "E":
                     end = point;
                     raceTrackPoints.add(point);
@@ -58,7 +75,6 @@ export default class Day20Solver extends PuzzleSolver {
             }
         };
         super.parseCharacterGrid(input, gridParser);
-
         if (!start || !end) throw new Error("start or end not defined");
         this.walls = walls;
         this.racetrack = this.orderRaceTrack(raceTrackPoints, start, end);
@@ -68,44 +84,18 @@ export default class Day20Solver extends PuzzleSolver {
         raceTrackPoints: Set<Point>,
         start: Point,
         end: Point
-    ): Array<Point> {
+    ) {
         const racetrack: Array<Point> = [start];
-
         while (raceTrackPoints.size) {
             const current = racetrack[racetrack.length - 1];
-            const next = current
-                .directlyAdjacent()
-                .find((adj) => raceTrackPoints.has(adj));
-            if (!next) throw new Error("Race track is disconnected!");
-            raceTrackPoints.delete(next);
-            racetrack.push(next);
+            racetrack.push(
+                <Point>(
+                    current
+                        .directlyAdjacent()
+                        .find(raceTrackPoints.delete.bind(raceTrackPoints))
+                )
+            );
         }
-
         return racetrack;
-    }
-
-    private findShortcuts(): Array<Shortcut> {
-        const shortcuts: Array<Shortcut> = [];
-
-        for (const wallPoint of this.walls) {
-            // Get race track points adjacent to the wall
-            const adjacentRaceTrackPoints = wallPoint
-                .directlyAdjacent()
-                .filter((point) => this.raceTrackIndexMap.has(point));
-
-            // Only consider walls with exactly two adjacent race track points
-            if (adjacentRaceTrackPoints.length === 2) {
-                const [first, second] = adjacentRaceTrackPoints;
-                const firstIndex = this.raceTrackIndexMap.get(first)!;
-                const secondIndex = this.raceTrackIndexMap.get(second)!;
-
-                const timeSaved = Math.abs(firstIndex - secondIndex) - 2;
-                if (timeSaved > 0) {
-                    shortcuts.push({wallPoint, timeSaved});
-                }
-            }
-        }
-
-        return shortcuts;
     }
 }
