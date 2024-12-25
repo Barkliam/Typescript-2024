@@ -8,15 +8,12 @@ export default class Day20Solver extends PuzzleSolver {
 
     solvePart1(): string | number {
         const raceTrackPositionMap: Map<Point, number> = this.racetrack.reduce(
-            (map, point, index) => {
-                map.set(point, index);
-                return map;
-            },
+            (map, point, index) => map.set(point, index),
             new Map<Point, number>()
         );
 
-        // Process walls and calculate shortcuts directly
         let validShortcutCounter = 0;
+        // check if each wall is a shortcut
         for (const wallPoint of this.walls) {
             const adjacentTrackPoints = wallPoint
                 .directlyAdjacent()
@@ -36,20 +33,21 @@ export default class Day20Solver extends PuzzleSolver {
     }
 
     solvePart2(): string | number {
+        const MAX_SHORTCUT_LENGTH = 20;
+
         let validShortcutCounter = 0;
-
         for (let i = 0; i < this.racetrack.length; i++) {
-            const current = this.racetrack[i];
-
-            this.racetrack.slice(i + 1).forEach((subsequentPoint, j) => {
-                const shortcutLength = current.manhattanDistance(subsequentPoint);
-                if (shortcutLength <= 20) {
-                    const timeSaved = j + 1 - shortcutLength;
+            const shortcutStart = this.racetrack[i];
+            for (let j = i + 1; j < this.racetrack.length; j++) {
+                const shortcutEnd: Point = this.racetrack[j];
+                const shortcutLength = shortcutStart.manhattanDistance(shortcutEnd);
+                if (shortcutLength <= MAX_SHORTCUT_LENGTH) {
+                    const timeSaved = j - i - shortcutLength;
                     if (timeSaved >= SHORTCUT_THRESHOLD) {
                         validShortcutCounter++;
                     }
                 }
-            });
+            }
         }
         return validShortcutCounter;
     }
