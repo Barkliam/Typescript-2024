@@ -63,6 +63,10 @@ export class Point {
     isDirectlyAdjacent(point: Point) {
         return this.directlyAdjacent().includes(point);
     }
+
+    manhattanDistance(other: Point): number {
+        return Math.abs(this.x - other.x) + Math.abs(this.y - other.y);
+    }
 }
 
 export enum Direction {
