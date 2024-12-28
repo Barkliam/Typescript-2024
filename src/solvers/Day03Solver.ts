@@ -3,28 +3,27 @@ import {PuzzleSolver} from "./PuzzleSolver";
 export default class Day03Solver extends PuzzleSolver {
     input!: string;
 
-    mutiplyPair(stringPair: string): number {
+    multiplyPair(stringPair: string): number {
         const [a, b] = stringPair.split(",").map(Number);
         return a * b;
     }
 
     solvePart1(): number {
-        const multiplicationPairs = this.input.match(/(?<=mul\()\d+,\d+(?=\))/g);
-        if (!multiplicationPairs) return -1;
-        return multiplicationPairs
-            .map(this.mutiplyPair)
-            .reduce((acc, curr) => acc + curr);
+        return this.sumMultiplicationPairs(this.input);
     }
 
-    //TODO Why doesn't this work???
+    sumMultiplicationPairs(input: string): number {
+        const multiplicationPairs = input.match(/(?<=mul\()\d+,\d+(?=\))/g) || [];
+        return multiplicationPairs.map(this.multiplyPair).reduce(this.sum);
+    }
+
     solvePart2(): number {
-        let doAmendedInput = "do()" + this.input + "do()"
-        let onlyDoBlocks = doAmendedInput.split("don't()").filter(text => text.includes("do()")).map(text => text.replace(/^.*?do\(\)/, "")).join()
-        const multiplicationPairs = onlyDoBlocks.match(/(?<=mul\()\d+,\d+(?=\))/g);
-        if (!multiplicationPairs) return -1;
-        return multiplicationPairs
-            .map(this.mutiplyPair)
-            .reduce((acc, curr) => acc + curr);
+        const doPrefixedInput = "do()" + this.input;
+        const processedInput = doPrefixedInput
+            .split("don't()")
+            .flatMap((text) => text.split("do()").slice(1))
+            .join();
+        return this.sumMultiplicationPairs(processedInput);
     }
 
     processInput(input: string): void {

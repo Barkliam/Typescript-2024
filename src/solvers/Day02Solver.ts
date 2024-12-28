@@ -28,7 +28,7 @@ export default class Day02Solver extends PuzzleSolver {
     }
 
     solvePart2(): string | number {
-        return "Default solution to part 2";
+        return -1
     }
     processInput(input: string): void {
         this.line = input.split("\n")
