@@ -9,7 +9,7 @@ class Day09Test extends AbstractDayTest<any> {
 const dayTest = new Day09Test();
 
 test('Day 9 Part 1 Test Input 1', () => {
-    dayTest.testPart(1, 41, 1);
+    dayTest.testPart(1, 1928, 1);
 });
 
 test('Day 9 Part 2 Test Input 1', () => {

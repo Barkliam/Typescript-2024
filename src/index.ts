@@ -34,4 +34,4 @@ async function solveDay(day: number): Promise<void> {
 }
 
 // Change this line to solve a specific day:
-solveDay(3).catch((error) => console.error(error));
+solveDay(9).catch((error) => console.error(error));
