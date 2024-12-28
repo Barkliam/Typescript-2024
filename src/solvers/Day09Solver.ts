@@ -9,12 +9,13 @@ export default class Day09Solver extends PuzzleSolver {
             const nextFreeSpace: number | undefined = this.freeSpaces.shift();
             if (!nextFreeSpace) throw new Error("no free spaces left");
             let lastValue: number | undefined = this.fileArray.pop();
-            //
-            while (!lastValue) {
+
+            while (!lastValue && this.freeSpaces.length) {
                 lastValue = this.fileArray.pop();
                 this.freeSpaces.pop();
             }
-            if (!lastValue) throw new Error("array empty" + lastValue);
+
+            if (!lastValue) break;
 
             this.fileArray[nextFreeSpace] = lastValue;
         }
@@ -36,7 +37,6 @@ export default class Day09Solver extends PuzzleSolver {
             .forEach((digit) => {
                 if (file) {
                     fileArray.push(...Array(digit).fill(fileId));
-
                     fileId++;
                 } else {
                     freeSpaces.push(...this.getRange(fileArray.length, digit));
