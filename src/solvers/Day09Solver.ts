@@ -4,27 +4,30 @@ export default class Day09Solver extends PuzzleSolver {
     private freeSpaces!: Array<number>;
     private fileArray!: Array<number>;
 
-    solvePart1(): string | number {
+    solvePart1(): number {
         while (this.freeSpaces.length) {
-            const nextFreeSpace: number | undefined = this.freeSpaces.shift();
-            if (!nextFreeSpace) throw new Error("no free spaces left");
-            let lastValue: number | undefined = this.fileArray.pop();
+            const nextFreeSpace = this.freeSpaces.shift();
+            if (!nextFreeSpace) throw new Error("No free spaces left");
+            let lastValue = this.fileArray.pop();
 
             while (!lastValue && this.freeSpaces.length) {
                 lastValue = this.fileArray.pop();
                 this.freeSpaces.pop();
             }
 
-            if (!lastValue) break;
-
+            //handles case where last elements are empty and there are no more free spaces left
+            if (!lastValue) {
+                break;
+            }
             this.fileArray[nextFreeSpace] = lastValue;
         }
-        return this.fileArray.reduce((acc, curr, i) => acc + curr * i);
+        return this.fileArray.reduce((sum, fileId, fileIndex) => sum + fileId * fileIndex);
     }
 
     solvePart2(): string | number {
         return "Default solution to part 2";
     }
+
     processInput(input: string): void {
         let file = true;
         let fileArray: Array<number> = [];
@@ -45,16 +48,11 @@ export default class Day09Solver extends PuzzleSolver {
 
                 file = !file;
             });
-
         this.freeSpaces = freeSpaces;
         this.fileArray = fileArray;
     }
 
-    private getRange(start: number, length: number): Array<number> {
-        const returnArray = [];
-        for (let i = 0; i < length; i++) {
-            returnArray.push(start + i);
-        }
-        return returnArray;
+    private getRange(start: number, length: number): number[] {
+        return Array.from({length}, (_, i) => start + i);
     }
 }
